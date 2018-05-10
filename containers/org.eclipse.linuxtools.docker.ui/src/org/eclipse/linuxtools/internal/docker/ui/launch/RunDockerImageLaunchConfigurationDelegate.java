@@ -18,9 +18,12 @@ import java.util.Map;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
+import org.eclipse.debug.core.DebugException;
 import org.eclipse.debug.core.ILaunch;
 import org.eclipse.debug.core.ILaunchConfiguration;
 import org.eclipse.debug.core.model.ILaunchConfigurationDelegate;
+import org.eclipse.debug.core.model.IProcess;
+import org.eclipse.debug.core.model.IStreamsProxy;
 import org.eclipse.debug.ui.DebugUITools;
 import org.eclipse.debug.ui.IDebugModelPresentation;
 import org.eclipse.jface.viewers.ILabelProvider;
@@ -72,6 +75,68 @@ public class RunDockerImageLaunchConfigurationDelegate
 					config.getAttribute(
 							IRunDockerImageLaunchConfigurationConstants.AUTO_REMOVE,
 							false));
+
+			launch.addProcess(new IProcess() {
+
+				boolean terminated = false;
+
+				@Override
+				public void terminate() throws DebugException {
+					terminated = true;
+				}
+
+				@Override
+				public boolean isTerminated() {
+					return terminated;
+				}
+
+				@Override
+				public boolean canTerminate() {
+					// TODO Auto-generated method stub
+					return true;
+				}
+
+				@Override
+				public <T> T getAdapter(Class<T> adapter) {
+					// TODO Auto-generated method stub
+					return null;
+				}
+
+				@Override
+				public void setAttribute(String key, String value) {
+					// TODO Auto-generated method stub
+
+				}
+
+				@Override
+				public IStreamsProxy getStreamsProxy() {
+					// TODO Auto-generated method stub
+					return null;
+				}
+
+				@Override
+				public ILaunch getLaunch() {
+					// TODO Auto-generated method stub
+					return launch;
+				}
+
+				@Override
+				public String getLabel() {
+					return "container process";
+				}
+
+				@Override
+				public int getExitValue() throws DebugException {
+					// TODO Auto-generated method stub
+					return 0;
+				}
+
+				@Override
+				public String getAttribute(String key) {
+					// TODO Auto-generated method stub
+					return null;
+				}
+			});
 		} catch (CoreException e) {
 			Activator.log(e);
 		}
@@ -193,6 +258,16 @@ public class RunDockerImageLaunchConfigurationDelegate
 		if (labelVariables != null)
 			config.labels(labelVariables);
 
+		if (!lconfig.getAttribute(
+				IRunDockerImageLaunchConfigurationConstants.PUBLISH_ALL_PORTS,
+				false)) {
+			final List<String> serializedBindings = lconfig.getAttribute(
+					IRunDockerImageLaunchConfigurationConstants.PUBLISHED_PORTS,
+					new ArrayList<String>());
+			final Map<String, List<IDockerPortBinding>> portBindings = LaunchConfigurationUtils
+					.deserializePortBindings(serializedBindings);
+			config.exposedPorts(portBindings.keySet());
+		}
 		return config.build();
 	}
 
